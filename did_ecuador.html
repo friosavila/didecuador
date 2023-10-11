@@ -509,9 +509,7 @@ ATT &amp;=E(Y_{i,1}(1)|D=1)-\color{red}{E(Y_{i,1}(0)|D=1)} \\
 <style>div.jp-Notebook .datagrid-container {min-height: 448px; }</style>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>%set error(s):
-    'graph_width' configuration invalid. Reverting to: graph_width = 5.5in
-    'graph_height' configuration invalid. Reverting to: graph_height = 4in</code></pre>
+<pre><code>graph size was (5.5in, 4in), is now (default, default).</code></pre>
 </div>
 </div>
 
@@ -685,11 +683,11 @@ Treatment model: none
 -------------+----------------------------------------------------------------
 ATET         |
 experimental |
-   (1 vs 0)  |  -1055.483   346.1455    -3.05   0.002    -1733.916   -377.0504
+   (1 vs 0)  |  -1055.483   346.1459    -3.05   0.002    -1733.917   -377.0497
 -------------+----------------------------------------------------------------
 POmean       |
 experimental |
-          0  |   3118.849   185.0718    16.85   0.000     2756.114    3481.583
+          0  |   3118.849   185.0719    16.85   0.000     2756.114    3481.583
 ------------------------------------------------------------------------------</code></pre>
 </div>
 </div>
@@ -772,10 +770,8 @@ experimental |      Mean
 <section id="how-gxt-did-was-suppoused-to-work" class="slide level2">
 <h2>How GxT DID was suppoused to work</h2>
 <ul>
-<li><p>While the 2x2 DID design is simple to understand, it does not reflect the type of information that is available in most cases.</p>
-<ul>
-<li>It is not uncommon to have access to multiple periods (<span class="math inline">\(T&gt;2\)</span>), with a rollout treatment (<span class="math inline">\(D&gt;2\)</span>).</li>
-</ul></li>
+<li><p>First: Although restrictive, one common assumption for most models that deal with this design assume treatment is an absorbing state. (once treated, always treated).</p></li>
+<li><p>While the 2x2 DID design is simple to understand, it does not reflect the type of information that is available in most cases. (G&gt;2 and T&gt;2)</p></li>
 <li><p>Until few years ago, when this kind of data was available, the standard approach was to use a generalized DID design, which extended the use of Fixed Effects:</p></li>
 </ul>
 <p><span class="math display">\[
@@ -859,6 +855,47 @@ G\times T: Y_{i,t} &amp;= \sum \gamma_t + \sum \delta_i  + \theta^{fe} PT_{i,t} 
 </section>
 <section id="graphically-1" class="slide level2">
 <h2>Graphically</h2>
+<div class="cell" data-execution_count="9">
+<div class="cell-output cell-output-stdout">
+<pre><code>Number of observations (_N) was 0, now 100.
+(900 observations created)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =      1,000
+Absorbing 2 HDFE groups                           F(   0,    891) =          .
+                                                  Prob &gt; F        =          .
+                                                  R-squared       =     0.6663
+                                                  Adj R-squared   =     0.6258
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.3019
+
+------------------------------------------------------------------------------
+         trt | Coefficient  Std. err.      t    P&gt;|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       _cons |       .582   .0095454    60.97   0.000     .5632658    .6007342
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |       100           0         100     |
+           t |        10           1           9     |
+-----------------------------------------------------+</code></pre>
+</div>
+
+</div>
+<img data-src="did_ecuador_files/figure-revealjs/cell-10-output-2.png" class="r-stretch quarto-figure-center"></section>
+<section id="summarizing-the-problem" class="slide level2">
+<h2>Summarizing the Problem</h2>
+<ul>
+<li>Both Negative Weights and Bad Controls are capturing the same problem.</li>
+</ul>
+<ol type="1">
+<li><p>By using already treated units as controls (bad controls), we are implicitly applying negative weights to units that are already treated.</p></li>
+<li><p>This would not be a problem on its own, if the treatment effect is homogeneous across all groups and periods.</p></li>
+<li><p>However, if the treatment effect is heterogeneous, Parallel Trends between already treated and late treated units may not hold.</p></li>
+</ol>
 </section></section>
 <section>
 <section id="solutions" class="title-slide slide level1 center">
@@ -867,15 +904,65 @@ G\times T: Y_{i,t} &amp;= \sum \gamma_t + \sum \delta_i  + \theta^{fe} PT_{i,t} 
 </section>
 <section id="general-overview" class="slide level2">
 <h2>General Overview</h2>
-<p>The root of the problem: Using incorrect control units, because of homogeneity assumption</p>
-<p>Solutions: - Avoid using controls - Add Heterogeneity in the treatment effects - Use Only Good DID designs.</p>
+<p>The root of the problem with TWFE:</p>
+<blockquote>
+<p>If treatment effects are heterogenous, the TWFE estimator of treatment effects produces incorrect estimates because of “negative weights” or “bad controls”</p>
+</blockquote>
+<p>To solve the problem we need to do one of three things:</p>
+<ol type="1">
+<li>Avoid using bad controls (<span class="citation" data-cites="borusyak2023revisiting">Borusyak, Jaravel, and Spiess (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2023</a>)</span> and <span class="citation" data-cites="gardner2022twostage">Gardner (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2022</a>)</span>)</li>
+<li>Allow for heterogeneity in the treatment effect. (<span class="citation" data-cites="wooldridge_2021">Jeffrey M. Wooldridge (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span> and <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>)</li>
+<li>Use <em>only</em> good DID designs. (<span class="citation" data-cites="callaway_2021">Callaway and Sant’Anna (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>)</li>
+</ol>
 </section>
-<section id="avoid-using-controls-did_imputation-and-did2s" class="slide level2">
-<h2>Avoid using controls: <code>did_imputation</code> and <code>did2s</code></h2>
+<section id="avoid-using-bad-controls-did_imputation-and-did2s" class="slide level2">
+<h2>Avoid using bad controls: <code>did_imputation</code> and <code>did2s</code></h2>
 <h4 id="borusyak2023revisiting-and-gardner2022twostage"><span class="citation" data-cites="borusyak2023revisiting">Borusyak, Jaravel, and Spiess (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2023</a>)</span> and <span class="citation" data-cites="gardner2022twostage">Gardner (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2022</a>)</span></h4>
+<ul>
+<li><p>These authors propose methodologies that have different implementations, but are very similar in spirit.</p></li>
+<li><p>Both methods are based on the idea of “imputing” the missing potential outcomes for the treated group, using a method similar to the one used for 2x2 DID.</p></li>
+</ul>
+<ol type="1">
+<li>Use a combination of never and not-yet treated units model the outcomes as function of caracteristics.</li>
+</ol>
+<p><span class="math display">\[y_{it} = \delta_i + \gamma_t + \beta X_{it} + \epsilon_{it} \text{ if } D_{it}=0\]</span></p>
+<ol start="2" type="1">
+<li>Predictions from this model would represent the “potential outcomes” for non-treatment:</li>
+</ol>
+<p><span class="math display">\[\hat y_{it}^{D=0} \simeq y_{it}(0)\]</span></p>
 </section>
-<section id="allowing-for-heterogeneity-jwdid-and-eventstudyinteract" class="slide level2">
-<h2>Allowing for Heterogeneity: <code>jwdid</code> and <code>eventstudyinteract</code></h2>
+<section id="section-1" class="slide level2">
+<h2></h2>
+<ol start="3" type="1">
+<li>Use those predictions to estimate treatment effects for every individual:</li>
+</ol>
+<p><span class="math display">\[\widehat {TE}_i = y_{it}(1) - \hat y_{it}^{D=0}\]</span></p>
+<ol start="4" type="1">
+<li>For Statistical inference, using a single observation is not enough. However, Statistical inference is possible for some Aggregation of the individual Estimated TE.</li>
+</ol>
+<p><span class="math display">\[\widehat{ ATT} = E(\widehat {TE}_i|Z) = E(y_{it}(1)-\hat y_{it}^{D=0}|Z)\]</span></p>
+<p>where <span class="math inline">\(Z\)</span> can be any arbitrary restrictions on the averages.</p>
+</section>
+<section id="assumptions" class="slide level2">
+<h2>Assumptions</h2>
+<ul>
+<li><p>The identification of TE using the imputation method relies on the same assumptions as the traditional DID design.</p></li>
+<li><p>However, It also requires an additional assumption:</p>
+<ul>
+<li>PTA holds for all pre- and post-treatment periods.</li>
+</ul></li>
+<li><p>This why how we can use pre-treatment information to predict the potential outcomes for the treated group.</p></li>
+<li><p>This also means that the method is sensitive to problems with <strong>long</strong> PTA. Although it can be relaxed.</p></li>
+</ul>
+</section>
+<section id="implementation" class="slide level2">
+<h2>Implementation</h2>
+<ul>
+<li>There are two implementations of the method in Stata: <code>did_imputation</code> and <code>did2s</code>. In addition to the original GMM estimator described in <span class="citation" data-cites="gardner2022twostage">Gardner (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2022</a>)</span></li>
+</ul>
+</section>
+<section id="allow-for-heterogeneity-jwdid-and-eventstudyinteract" class="slide level2">
+<h2>Allow for Heterogeneity: <code>jwdid</code> and <code>eventstudyinteract</code></h2>
 <h4 id="wooldridge_2021-and-sun_estimating_2021"><span class="citation" data-cites="wooldridge_2021">Jeffrey M. Wooldridge (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span> and <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span></h4>
 </section>
 <section id="using-good-did-designs-csdid-and-csdid2" class="slide level2">

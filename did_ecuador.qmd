@@ -303,10 +303,10 @@ tabstat att_i, by(exper)
 
 ## How GxT DID was suppoused to work
 
-- While the 2x2 DID design is simple to understand, it does not reflect the type of information that is available in most cases.
-
-  - It is not uncommon to have access to multiple periods ($T>2$), with a rollout treatment ($D>2$).
-
+- First: Although restrictive, one common assumption for most models that deal with this design assume treatment is an absorbing state. (once treated, always treated).
+ 
+- While the 2x2 DID design is simple to understand, it does not reflect the type of information that is available in most cases. (G>2 and T>2)
+ 
 - Until few years ago, when this kind of data was available, the standard approach was to use a generalized DID design, which extended the use of Fixed Effects:
 
 $$
@@ -500,8 +500,8 @@ Will be more likely to have a negative weight $w_{it}$, thus contaminating the A
 
 ```{stata}
 *| echo: false
-*| output: false
 *| fig-align: center
+
 clear
 set obs 100
 gen id = _n
@@ -524,21 +524,76 @@ two (scatter _reghdfe_resid t if trt==1 & gvar==1 & flag==1, connect(l)) ///
   
 ```
 
+## Summarizing the Problem
+
+- Both Negative Weights and Bad Controls are capturing the same problem.
+  
+1. By using already treated units as controls (bad controls), we are implicitly applying negative weights to units that are already treated.
+
+2. This would not be a problem on its own, if the treatment effect is homogeneous across all groups and periods.
+
+3. However, if the treatment effect is heterogeneous, Parallel Trends between already treated and late treated units may not hold. 
+
 # Solutions
 
 ## General Overview
 
-The root of the problem: Using incorrect control units, because of homogeneity assumption
+The root of the problem with TWFE: 
 
-Solutions: 
-- Avoid using controls
-- Add Heterogeneity in the treatment effects
-- Use Only Good DID designs.
+> If treatment effects are heterogenous, the TWFE estimator of treatment effects produces incorrect estimates
+> because of "negative weights" or "bad controls"
 
-## Avoid using controls: `did_imputation` and `did2s`
+To solve the problem we need to do one of three things:
+
+  1) Avoid using bad controls (@borusyak2023revisiting and @gardner2022twostage)
+  2) Allow for heterogeneity in the treatment effect. (@wooldridge_2021 and @sun_estimating_2021)
+  3) Use *only* good DID designs. (@callaway_2021)
+
+## Avoid using bad controls: `did_imputation` and `did2s`
 #### @borusyak2023revisiting and @gardner2022twostage
 
-## Allowing for Heterogeneity: `jwdid` and `eventstudyinteract`
+- These authors propose methodologies that have different implementations, but are very similar in spirit.
+
+- Both methods are based on the idea of "imputing" the missing potential outcomes for the treated group, using a method similar to the one used for 2x2 DID. 
+  
+1. Use a combination of never and not-yet treated units model the outcomes as function of caracteristics.
+
+$$y_{it} = \delta_i + \gamma_t + \beta X_{it} + \epsilon_{it} \text{ if } D_{it}=0$$
+
+2. Predictions from this model would represent the "potential outcomes" for non-treatment:
+
+$$\hat y_{it}^{D=0} \simeq y_{it}(0)$$ 
+
+##
+
+3. Use those predictions to estimate treatment effects for every individual:
+
+$$\widehat {TE}_i = y_{it}(1) - \hat y_{it}^{D=0}$$
+
+4. For Statistical inference, using a single observation is not enough. However, Statistical inference is possible for some Aggregation of the individual Estimated TE.
+
+$$\widehat{ ATT} = E(\widehat {TE}_i|Z) = E(y_{it}(1)-\hat y_{it}^{D=0}|Z)$$
+
+where $Z$ can be any arbitrary restrictions on the averages. 
+
+## Assumptions
+
+- The identification of TE using the imputation method relies on the same assumptions as the traditional DID design.
+- However, It also requires an additional assumption:
+  - PTA holds for all pre- and post-treatment periods.
+- This why how we can use pre-treatment information to predict the potential outcomes for the treated group.
+
+- This also means that the method is sensitive to problems with **long** PTA. Although it can be relaxed.
+
+## Implementation
+
+- There are two implementations of the method in Stata: `did_imputation` and `did2s`. In addition to the original GMM estimator described in @gardner2022twostage
+
+```{stata}
+
+```
+
+## Allow for Heterogeneity: `jwdid` and `eventstudyinteract`
 #### @wooldridge_2021 and @sun_estimating_2021
 
 ## Using Good DID Designs: `csdid` and `csdid2`

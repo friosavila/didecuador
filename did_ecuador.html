@@ -433,7 +433,7 @@ Fernando Rios-Avila
 <section id="why-differences-in-diffences" class="slide level2">
 <h2>Why differences in diffences?</h2>
 <ul>
-<li><p>The Differences-in-Differences (DID) model is one of the most commonly used tools in applied economics for analyzing causal effects of an intervention or policy treatment.</p></li>
+<li><p>Differences-in-Differences (DID) is one of the most popular tools in applied economics for analyzing causal effects of an intervention or policy treatment.</p></li>
 <li><p>Under reasonable assumptions, DID allows you to identify these effects by comparing changes in the treatment group with changes in the control group.</p>
 <ul>
 <li>This method of identification even allows for controlling for self-selection in the treatment.</li>
@@ -454,7 +454,7 @@ Fernando Rios-Avila
 <ul>
 <li>Before (<span class="math inline">\(T=0\)</span>) and after (<span class="math inline">\(T=1\)</span>) the treatment.</li>
 </ul></li>
-<li>For all groups and periods of time, we observe the <em>realized</em> outcome <span class="math inline">\(Y\)</span>, but cannot observe the <em>potential</em> outcome.</li>
+<li>For all groups and periods of time, we observe the <em>realized</em> outcome <span class="math inline">\(Y\)</span>, but cannot observe all <em>potential</em> outcomes.</li>
 <li>This setup is valid both for panel data and repeat cross-sections, but will focus on panel data.</li>
 </ul>
 </section>
@@ -475,7 +475,7 @@ Fernando Rios-Avila
 <section id="the-did-estimator-assumptions" class="slide level2">
 <h2>The DID Estimator: Assumptions</h2>
 <ul>
-<li>Because we cant observe both potential outcomes, we need to make assumptions to identify the treatment effect.</li>
+<li>Because we can’t observe both potential outcomes, we need to make assumptions to identify the treatment effect.</li>
 </ul>
 <ol type="1">
 <li><p><strong>Stable Unit Treatment Value Assumption (SUTVA)</strong>: The treatment status of one unit does not affect the potential outcomes of other units. (No spillovers)</p></li>
@@ -509,7 +509,9 @@ ATT &amp;=E(Y_{i,1}(1)|D=1)-\color{red}{E(Y_{i,1}(0)|D=1)} \\
 <style>div.jp-Notebook .datagrid-container {min-height: 448px; }</style>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>graph size was (5.5in, 4in), is now (default, default).</code></pre>
+<pre><code>%set error(s):
+    'graph_width' configuration invalid. Reverting to: graph_width = 5.5in
+    'graph_height' configuration invalid. Reverting to: graph_height = 4in</code></pre>
 </div>
 </div>
 
@@ -519,7 +521,7 @@ ATT &amp;=E(Y_{i,1}(1)|D=1)-\color{red}{E(Y_{i,1}(0)|D=1)} \\
 <ul>
 <li><strong>Difference-in-Means</strong>:</li>
 </ul>
-<p><span class="math display">\[\hat ATT=\bar Y^{D=1,T=1} - \bar Y^{D=1,T=0} - [ \bar Y^{D=0,T=1} - \bar Y^{D=0,T=0} ]\]</span></p>
+<p><span class="math display">\[\widehat{ATT}=\bar Y^{D=1,T=1} - \bar Y^{D=1,T=0} - [ \bar Y^{D=0,T=1} - \bar Y^{D=0,T=0} ]\]</span></p>
 <ul>
 <li><strong>Regression</strong>:</li>
 </ul>
@@ -529,14 +531,14 @@ ATT &amp;=E(Y_{i,1}(1)|D=1)-\color{red}{E(Y_{i,1}(0)|D=1)} \\
 </ul>
 <p><span class="math display">\[\begin{aligned}
 Y_{i,t} &amp;= \beta_0 + \sum \delta_i  + \beta_2 t + \beta_3 (D_i \times t) + \epsilon_{i,t} \\
-\Delta Y_{i} &amp;= \beta_2 + \beta_3 D_i + \epsilon_{i} \text{ for } t=1 \\
+\Delta Y_{i} &amp;= \beta_2 + \beta_3 D_i + \epsilon_{i} \text{ for } t=0 \\
 \end{aligned}
 \]</span></p>
 </section>
 <section id="extension-adding-controls" class="slide level2">
 <h2>Extension: Adding Controls</h2>
 <ul>
-<li>The DID estimator presented above relies on Uncondiitonal Parallel Trends. It may work if both control and treated groups are similar in all aspects, except for the treatment. But they may not.</li>
+<li>The DID estimator presented above relies on Unconditional Parallel Trends. It may work if both control and treated groups are similar in all aspects, except for the treatment. But they may not.</li>
 <li>In this case, we can add controls to the model, to account for differences in the groups.</li>
 </ul>
 <p><span class="math display">\[Y_{i,t} = \beta_0 + \beta_1 D_i + \beta_2 t + \beta_3 (D_i \times t) +  X_{it} \gamma + \epsilon_{i,t}\]</span></p>
@@ -585,7 +587,7 @@ Y_{i,t} &amp;= \beta_0 + \sum \delta_i  + \beta_2 t + \beta_3 (D_i \times t) + \
 <section id="potential-solution-drdid-teffects" class="slide level2">
 <h2>Potential Solution: <code>drdid</code>, <code>teffects</code></h2>
 <ul>
-<li><span class="citation" data-cites="santanna_doubly_2020">Sant’Anna and Zhao (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2020</a>)</span> propose various alternatives to estimate the treatment effect with controls, under CPTA. They contrast the implementation of methods that mix linear regressions, Inverse Probability Weighting (IPW) and Doubly Robust Estimators (DR).</li>
+<li><span class="citation" data-cites="santanna_doubly_2020">Sant’Anna and Zhao (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2020</a>)</span> propose various alternatives to estimate the treatment effect with controls, under CPTA. They contrast the implementation of methods that use linear regressions, Inverse Probability Weighting (IPW) and Doubly Robust Estimators (DR).</li>
 <li>Similar estimates could be obtained using <code>teffects</code> in Stata.</li>
 <li>But how does this work? Two Cases:
 <ul>
@@ -605,19 +607,19 @@ Y_{i,t} &amp;= \beta_0 + \sum \delta_i  + \beta_2 t + \beta_3 (D_i \times t) + \
 <ul>
 <li>Simplest case, no controls: <span class="math display">\[\Delta Y_i = \beta_0 + \beta_1 D_i + \varepsilon_i\]</span></li>
 </ul></li>
-<li>In other words, because we have simplified the problem, the model is now a simple linear regression, with 1 period.</li>
+<li>In other words, the model is now a simple linear regression, with 1 period.</li>
 </ul>
 </section>
 <section id="panel-data-adding-controls" class="slide level2">
 <h2>Panel Data: Adding controls</h2>
 <ul>
-<li><p>Because you have now only 1 period, and two groups. All treatment effect estimators can be used.</p>
+<li>Because you have now only 1 period, and two groups. All treatment effect estimators can be used.
 <ul>
 <li>regression outcome, IPW, doubly robust, matching, etc.</li>
 <li>We use them to estimate the second D of DID</li>
 </ul></li>
-<li><p>With Transformed data (<span class="math inline">\(\Delta y\)</span>) as dependent variable, any of the methods in <code>teffects</code> can be used to estimate the treatment effect, and their Standard errors</p></li>
-<li><p>With untransformed data, you can use <code>drdid</code> to estimate the treatment effect, and their Standard errors.</p>
+<li>Empirically: With Transformed data (<span class="math inline">\(\Delta y\)</span>) as dependent variable, any of the methods in <code>teffects</code> can be used to estimate the treatment effect.</li>
+<li>With untransformed data (RC), you can use <code>drdid</code> to estimate the treatment effect, and their Standard errors.
 <ul>
 <li>You need to make sure you have only 2 periods of data.</li>
 </ul></li>
@@ -683,11 +685,11 @@ Treatment model: none
 -------------+----------------------------------------------------------------
 ATET         |
 experimental |
-   (1 vs 0)  |  -1055.483   346.1459    -3.05   0.002    -1733.917   -377.0497
+   (1 vs 0)  |  -1055.483   346.1455    -3.05   0.002    -1733.916   -377.0504
 -------------+----------------------------------------------------------------
 POmean       |
 experimental |
-          0  |   3118.849   185.0719    16.85   0.000     2756.114    3481.583
+          0  |   3118.849   185.0718    16.85   0.000     2756.114    3481.583
 ------------------------------------------------------------------------------</code></pre>
 </div>
 </div>
@@ -729,22 +731,22 @@ experimental |      Mean
 </div>
 </div>
 </section>
-<section id="highlights" class="slide level2">
-<h2>Highlights</h2>
+<section id="highlights-i-identification" class="slide level2">
+<h2>Highlights I: Identification</h2>
 <ul>
-<li>The identification relies on the non-anticipation assumpiton and the parallel trends assumption.
+<li>The identification relies on the non-anticipation assumption and the parallel trends assumption.
 <ul>
 <li>Neither of these assumptions can be tested, but they can be supported by the data.</li>
 </ul></li>
 <li>For Implementation, If one has panel data, <code>teffects</code> and <code>drdid</code> can be used to estimate the treatment effect, and their standard errors. (after preparing the data)</li>
-<li>Otherwise, <code>drdid</code> can be used for repeated crossection as well.</li>
+<li>Otherwise, <code>drdid</code> can be used for repeated crossection as well. (or GMM)</li>
 </ul>
 </section>
-<section id="highlighs-ii" class="slide level2">
-<h2>Highlighs II</h2>
+<section id="highlighs-ii-overlapping" class="slide level2">
+<h2>Highlighs II: Overlapping</h2>
 <ul>
 <li>The <strong>overlapping</strong> assumption is important, and has different implications for the different methods.</li>
-<li>When the estimation method is <code>reg</code> or <code>ra</code>, the overlapping assumption may be less important, because the model is extrapolates to created “potential outcomes” for the treated group.
+<li>When the estimation method is <code>reg</code> or <code>ra</code>, the overlapping assumption is less biding, because the model is extrapolates to created “potential outcomes” for the treated group.
 <ul>
 <li>However, extrapolation may not be accurate, or create incorrect extrapolations (base category dummies)</li>
 </ul></li>
@@ -752,10 +754,13 @@ experimental |      Mean
 <li>For most practical purposes, <code>dripw</code> may be the most stable, and preferred method.</li>
 </ul>
 </section>
-<section id="highlighs-iii" class="slide level2">
-<h2>Highlighs III</h2>
+<section id="highlighs-iii-controls" class="slide level2">
+<h2>Highlighs III: Controls</h2>
 <ul>
-<li>With panel data, <code>drdid</code> automatically constrains model specification to use pre-treatment information only.</li>
+<li>With panel data, <code>drdid</code> automatically constrains model specification to use pre-treatment information only.
+<ul>
+<li>Added work is required to include post-treatment information.</li>
+</ul></li>
 <li>With Repeated crossection, <code>drdid</code> would use both pre-treatment and post-treatment information.</li>
 </ul>
 </section>
@@ -766,14 +771,94 @@ experimental |      Mean
 </section>
 <section id="how-gxt-did-was-suppoused-to-work" class="slide level2">
 <h2>How GxT DID was suppoused to work</h2>
-<p>Incorrect Generalized 2x2 DID. TWFE (adding time and group fixed effects)</p>
-<p>and adding Controls</p>
-<p>When it works…When it doesnt? - Homgenous vs heterogenous Treatment effects.</p>
+<ul>
+<li><p>While the 2x2 DID design is simple to understand, it does not reflect the type of information that is available in most cases.</p>
+<ul>
+<li>It is not uncommon to have access to multiple periods (<span class="math inline">\(T&gt;2\)</span>), with a rollout treatment (<span class="math inline">\(D&gt;2\)</span>).</li>
+</ul></li>
+<li><p>Until few years ago, when this kind of data was available, the standard approach was to use a generalized DID design, which extended the use of Fixed Effects:</p></li>
+</ul>
+<p><span class="math display">\[
+\begin{aligned}
+2\times2: Y_{i,t} &amp;= \beta_0 + \beta_1 T  + \beta_2 D_i + \beta_3 (D_i \times T) + \epsilon_{i,t} \\
+G\times T: Y_{i,t} &amp;= \sum \gamma_t + \sum \delta_i  + \theta^{fe} PT_{i,t} + \epsilon_{i,t} \\
+\end{aligned}
+\]</span></p>
+<p>where <span class="math inline">\(PT_{i,t}\)</span> assume the value of 1 for the treated group After the treatment is applied, and 0 otherwise, and <span class="math inline">\(\theta^{fe}\)</span> representing the treatment effect.</p>
+<ul>
+<li>Little that we know that this approach only works if the treatment effect is homogeneous across all groups and periods.</li>
+</ul>
 </section>
 <section id="why-it-doesnt-work" class="slide level2">
-<h2>Why it doesnt work ?</h2>
-<p>Negative Weights. Simple Explanation</p>
-<p>Incorrect controls: Using Treated and as controls</p>
+<h2>Why it doesn’t work?</h2>
+<p>There are at least two-ways that have been used to explain why the Standard TWFE does not work:</p>
+<ul>
+<li><p><strong>The “Bad Controls” Problem</strong>: <span class="citation" data-cites="goodmanbacon2021">Goodman-Bacon (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span> shows that the TWFE estimator for ATT is a kind of weighted average of all possible DID one could estimate. Some of these would not be <strong>good</strong> DID designs.</p></li>
+<li><p><strong>Negative Weights</strong>: <span class="citation" data-cites="dechaisemartin2020">Chaisemartin and D’Haultfœuille (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2020</a>)</span> and <span class="citation" data-cites="borusyak2023revisiting">Borusyak, Jaravel, and Spiess (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2023</a>)</span> show that because TWFE ATT estimator is a weighted average of all group-Specific ATT, some may include negative weights.</p>
+<p>This may produce negative ATT even if all group-specific ATT are positive.</p></li>
+<li><p>However, when the treatment effect is homogeneous, Neither of these situations would be a problem.</p></li>
+</ul>
+</section>
+<section id="the-bad-controls-problem" class="slide level2">
+<h2>The “Bad Controls” Problem</h2>
+<div class="panel-tabset">
+<ul id="tabset-1" class="panel-tabset-tabby"><li><a data-tabby-default="" href="#tabset-1-1">All Cases</a></li><li><a href="#tabset-1-2">Early Treated vs Later Treated (Good)</a></li><li><a href="#tabset-1-3">Early Treated vs Later Treated (bad)</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1">
+<p><img data-src="fig1.png" style="height:50.0%"></p>
+</div>
+<div id="tabset-1-2">
+<p><img data-src="fig2.png"></p>
+</div>
+<div id="tabset-1-3">
+<p><img data-src="fig3.png"></p>
+</div>
+</div>
+</div>
+</section>
+<section id="the-bad-controls-problem-1" class="slide level2">
+<h2>The “Bad Controls” Problem</h2>
+<div class="panel-tabset">
+<ul id="tabset-2" class="panel-tabset-tabby"><li><a data-tabby-default="" href="#tabset-2-1">All Cases</a></li><li><a href="#tabset-2-2">Early Treated vs Later Treated (Good)</a></li><li><a href="#tabset-2-3">Early Treated vs Later Treated (bad)</a></li></ul>
+<div class="tab-content">
+<div id="tabset-2-1">
+<p><img data-src="fig1b.png"></p>
+</div>
+<div id="tabset-2-2">
+<p><img data-src="fig2b.png"></p>
+</div>
+<div id="tabset-2-3">
+<p><img data-src="fig3b.png"></p>
+</div>
+</div>
+</div>
+</section>
+<section id="negative-weights" class="slide level2">
+<h2>Negative Weights</h2>
+<ul>
+<li>To understand the idea of Negative Weights, lets consider the following example:</li>
+</ul>
+<p><span class="math display">\[Y_{i,t} = \sum \delta_i + \sum \gamma_t  + \theta PT + \epsilon_{i,t}\]</span></p>
+<p>If the panel data is balanced, and we apply FWL, we can use partialling out the Fixed Effects:</p>
+<p><span class="math display">\[\widetilde{PT}_{it}=PT_{it}-\overline{PT}_{i}-\overline{PT}_{t}+\overline{PT}\]</span></p>
+<p>and estimate <span class="math inline">\(\theta^{fe}\)</span> as:</p>
+<p><span class="math display">\[\hat\theta^{fe} = \frac{\sum \widetilde{PT_{it}} Y_{it}}{\sum \widetilde{PT}_{it}^2}
+= w_{it} Y_{it}
+\]</span></p>
+</section>
+<section id="section" class="slide level2">
+<h2></h2>
+<p><span class="math display">\[\widetilde{PT}_{it}=PT_{it}-\overline{PT}_{i}-\overline{PT}_{t}+\overline{PT}\]</span></p>
+<ul>
+<li><span class="math inline">\(\overline{PT}_{i}\)</span> is the share of periods a unit is observed to be treated. (larger for early treated)</li>
+<li><span class="math inline">\(\overline{PT}_{t}\)</span> is the share of units treated at time <span class="math inline">\(t\)</span>. (increasing)</li>
+<li><span class="math inline">\(\overline{PT}\)</span> Share of treated “unit-periods”</li>
+</ul>
+<p>Thus, - Units that are treated early, (high <span class="math inline">\(\overline{PT}_{i}\)</span>) - but are analyzed at later periods (<span class="math inline">\(\overline{PT}_{t}\)</span> increasing in <span class="math inline">\(t\)</span>)</p>
+<p>Will be more likely to have a negative weight <span class="math inline">\(w_{it}\)</span>, thus contaminating the ATT estimate.</p>
+</section>
+<section id="graphically-1" class="slide level2">
+<h2>Graphically</h2>
 </section></section>
 <section>
 <section id="solutions" class="title-slide slide level1 center">
@@ -812,11 +897,17 @@ Caetano, Carolina, and Brantly Callaway. 2022. <span>“Difference-in-<span>Diff
 <div id="ref-callaway_2021" class="csl-entry" role="listitem">
 Callaway, Brantly, and Pedro H. C. Sant’Anna. 2021. <span>“Difference-in-<span>Differences</span> with Multiple Time Periods.”</span> <em>Journal of Econometrics</em>, Themed <span>Issue</span>: <span>Treatment</span> <span>Effect</span> 1, 225 (2): 200–230. <a href="https://doi.org/10.1016/j.jeconom.2020.12.001">https://doi.org/10.1016/j.jeconom.2020.12.001</a>.
 </div>
+<div id="ref-dechaisemartin2020" class="csl-entry" role="listitem">
+Chaisemartin, Clément de, and Xavier D’Haultfœuille. 2020. <span>“Two-Way Fixed Effects Estimators with Heterogeneous Treatment Effects.”</span> <em>American Economic Review</em> 110 (9): 2964–96. <a href="https://doi.org/10.1257/aer.20181169">https://doi.org/10.1257/aer.20181169</a>.
+</div>
 <div id="ref-dechaisemartin_two-way_2023" class="csl-entry" role="listitem">
-Chaisemartin, Clément de, and Xavier D’Haultfœuille. 2023. <span>“Two-Way Fixed Effects and Differences-in-Differences with Heterogeneous Treatment Effects: A Survey.”</span> <em>The Econometrics Journal</em> 26 (3): C1–30. <a href="https://doi.org/10.1093/ectj/utac017">https://doi.org/10.1093/ectj/utac017</a>.
+———. 2023. <span>“Two-Way Fixed Effects and Differences-in-Differences with Heterogeneous Treatment Effects: A Survey.”</span> <em>The Econometrics Journal</em> 26 (3): C1–30. <a href="https://doi.org/10.1093/ectj/utac017">https://doi.org/10.1093/ectj/utac017</a>.
 </div>
 <div id="ref-gardner2022twostage" class="csl-entry" role="listitem">
 Gardner, John. 2022. <span>“Two-Stage Differences in Differences.”</span> <a href="https://arxiv.org/abs/2207.05943">https://arxiv.org/abs/2207.05943</a>.
+</div>
+<div id="ref-goodmanbacon2021" class="csl-entry" role="listitem">
+Goodman-Bacon, Andrew. 2021. <span>“Difference-in-Differences with Variation in Treatment Timing.”</span> <em>Journal of Econometrics</em> 225 (2): 254–77. https://doi.org/<a href="https://doi.org/10.1016/j.jeconom.2021.03.014">https://doi.org/10.1016/j.jeconom.2021.03.014</a>.
 </div>
 <div id="ref-roth_whats_2023" class="csl-entry" role="listitem">
 Roth, Jonathan, Pedro H. C. Sant’Anna, Alyssa Bilinski, and John Poe. 2023. <span>“What’s Trending in Difference-in-Differences? <span>A</span> Synthesis of the Recent Econometrics Literature.”</span> <em>Journal of Econometrics</em> 235 (2): 2218–44. <a href="https://doi.org/10.1016/j.jeconom.2023.03.008">https://doi.org/10.1016/j.jeconom.2023.03.008</a>.

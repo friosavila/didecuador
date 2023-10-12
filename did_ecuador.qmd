@@ -554,7 +554,7 @@ To solve the problem we need to do one of three things:
 
 - These authors propose methodologies that have different implementations, but are very similar in spirit.
 
-- Both methods are based on the idea of "imputing" the missing potential outcomes for the treated group, using a method similar to the one used for 2x2 DID. 
+- Both methods are based on the idea of "imputing" the missing potential outcomes $Y_{it}(0)$ for the treated group, using a method similar to the one used for 2x2 DID. 
   
 1. Use a combination of never and not-yet treated units model the outcomes as function of caracteristics.
 
@@ -562,11 +562,11 @@ $$y_{it} = \delta_i + \gamma_t + \beta X_{it} + \epsilon_{it} \text{ if } D_{it}
 
 2. Predictions from this model would represent the "potential outcomes" for non-treatment:
 
-$$\hat y_{it}^{D=0} \simeq y_{it}(0)$$ 
+$$\hat y_{it}(0) = \hat \delta_i + \hat \gamma_t \simeq y_{it}(0)$$ 
 
 ##
 
-3. Use those predictions to estimate treatment effects for every individual:
+3. Use those predictions, we can estimate treatment effects for every individual:
 
 $$\widehat {TE}_i = y_{it}(1) - \hat y_{it}^{D=0}$$
 
@@ -576,25 +576,107 @@ $$\widehat{ ATT} = E(\widehat {TE}_i|Z) = E(y_{it}(1)-\hat y_{it}^{D=0}|Z)$$
 
 where $Z$ can be any arbitrary restrictions on the averages. 
 
+5. This could be estimated as:
+
+$$y_{it} -\hat \delta_i - \hat \gamma_t = \theta + e$$
+
+or by simply averaging $E(y_{it} -\hat y_{it}(0)|Z)$
+
 ## Assumptions
 
 - The identification of TE using the imputation method relies on the same assumptions as the traditional DID design.
 - However, It also requires an additional assumption:
   - PTA holds for all pre- and post-treatment periods.
 - This why how we can use pre-treatment information to predict the potential outcomes for the treated group.
+  - At the extreme, one could even identify TE without access to non-treated units!
+- This also means that the method is sensitive to problems with **long** PTA. Although it can be somewhat relaxed (based on model specification).
 
-- This also means that the method is sensitive to problems with **long** PTA. Although it can be relaxed.
-
-## Implementation
+## Implementation {.scrollable}
 
 - There are two implementations of the method in Stata: `did_imputation` and `did2s`. In addition to the original GMM estimator described in @gardner2022twostage
 
 ```{stata}
+*| echo: true
+*| classes: larger
+*| code-fold: false
+use http://pped.org/bacon_example.dta, clear
+**Estimate model for Pre-treatment data
+qui:reghdfe asmrs if post==0, abs(fe1 = stfips fe2 = year)
+** Extra polate
+bysort stfips (fe1):replace fe1=fe1[1]
+bysort year (fe2):replace fe2=fe2[1]
 
+** get TE for i
+gen te = asmrs-fe1-fe2-_b[_cons]
+sum te if post==0
+sum te if post==1
+```
+
+using `did_imputation`:
+
+```{stata}
+*| echo: true
+*| classes: larger
+*| code-fold: false
+** Gvar
+egen gvar = csgvar(post), ivar(stfips) tvar(year)
+** event
+gen event = year - gvar if gvar!=0
+
+clonevar gvar2=gvar if gvar!=0
+
+did_imputation asmrs stfips year gvar2, autosample horizon(1/10) pretrends(5)
 ```
 
 ## Allow for Heterogeneity: `jwdid` and `eventstudyinteract`
 #### @wooldridge_2021 and @sun_estimating_2021
+
+- In the analysis of Differences in Differences with multiple periods, one of the earliest attempts to "fix" the potential problem of TWFE was to allow for dynamic effects across time:
+
+$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{l=-K}^{l=-2}\theta_l \mathbb{1}(e=l)
+ + \sum_{l=0}^{l=L}\theta_l \mathbb{1}(e=l) + \epsilon_{i,t}
+$$
+
+- Potentially, this model would allow one to analyze both the short and long term effects of the treatment, as well as evaluate the parallel trends assumption for each period. 
+
+- However, as described in @sun_estimating_2021, this model is also sensitive to censoring. 
+  - Similar to the Simple TWFE, there could be contamination across treatment timing, producing inconsistent results.
+
+## Allow for Heterogeneity: `jwdid` and `eventstudyinteract`
+
+- A Similar insight to the problem of TWFE was presented in @wooldridge_2021.
+  - Wooldridge proposes that using TWFE is not necessary a problem. 
+  - The problem is that we are imposing the assumption of Homogeneity in the treatment effect.
+  - In other words, the Generalized DID model was simply misspecified.
+
+Instead of modeling:
+
+$$Y_{i,t} = \delta_i + \gamma_t  + \theta^{fe} PT_{i,t} + \epsilon_{i,t}$$
+  
+One should allow for a full set of interactions between the group and time dummies:
+
+$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=g0}^G \sum_{t=g}^T \theta_{g,t} \mathbb{1}(G=g,T=t) + \epsilon_{i,t}$$
+
+## 
+
+- This is a very similar solution as the one proposed by @sun_estimating_2021.
+	- They propose to use a full set of interactions between the group dummies and the event-study dummies.
+
+- However, @wooldridge_2021 approach could also be extended to identify the same parameters as @sun_estimating_2021.
+
+$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=g0}^G \sum_{t=1}^T \theta_{g,t} \mathbb{1}(G=g,T=t) + \epsilon_{i,t}$$
+
+- In this framework, each $\theta_{g,t}$ represents the ATT for each group at a particular period.
+  - The challenge in this case is to know how to aggregate these estimates, and how to estimate their Standard errors.
+- And in the simplest case, the basic @wooldridge_2021 is equivalent to  @borusyak2023revisiting method.
+
+## Example
+
+
+
+
+## Example
+
 
 ## Using Good DID Designs: `csdid` and `csdid2`
 #### @callaway_2021

@@ -509,7 +509,9 @@ ATT &amp;=E(Y_{i,1}(1)|D=1)-\color{red}{E(Y_{i,1}(0)|D=1)} \\
 <style>div.jp-Notebook .datagrid-container {min-height: 448px; }</style>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>graph size was (5.5in, 4in), is now (default, default).</code></pre>
+<pre><code>%set error(s):
+    'graph_width' configuration invalid. Reverting to: graph_width = 5.5in
+    'graph_height' configuration invalid. Reverting to: graph_height = 4in</code></pre>
 </div>
 </div>
 
@@ -683,11 +685,11 @@ Treatment model: none
 -------------+----------------------------------------------------------------
 ATET         |
 experimental |
-   (1 vs 0)  |  -1055.483   346.1459    -3.05   0.002    -1733.917   -377.0497
+   (1 vs 0)  |  -1055.483   346.1455    -3.05   0.002    -1733.916   -377.0504
 -------------+----------------------------------------------------------------
 POmean       |
 experimental |
-          0  |   3118.849   185.0719    16.85   0.000     2756.114    3481.583
+          0  |   3118.849   185.0718    16.85   0.000     2756.114    3481.583
 ------------------------------------------------------------------------------</code></pre>
 </div>
 </div>
@@ -911,7 +913,7 @@ Absorbed degrees of freedom:
 <p>To solve the problem we need to do one of three things:</p>
 <ol type="1">
 <li>Avoid using bad controls (<span class="citation" data-cites="borusyak2023revisiting">Borusyak, Jaravel, and Spiess (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2023</a>)</span> and <span class="citation" data-cites="gardner2022twostage">Gardner (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2022</a>)</span>)</li>
-<li>Allow for heterogeneity in the treatment effect. (<span class="citation" data-cites="wooldridge_2021">Jeffrey M. Wooldridge (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span> and <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>)</li>
+<li>Allow for heterogeneity in the treatment effect. (<span class="citation" data-cites="wooldridge_2021">Wooldridge (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span> and <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>)</li>
 <li>Use <em>only</em> good DID designs. (<span class="citation" data-cites="callaway_2021">Callaway and Sant’Anna (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>)</li>
 </ol>
 </section>
@@ -920,7 +922,7 @@ Absorbed degrees of freedom:
 <h4 id="borusyak2023revisiting-and-gardner2022twostage"><span class="citation" data-cites="borusyak2023revisiting">Borusyak, Jaravel, and Spiess (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2023</a>)</span> and <span class="citation" data-cites="gardner2022twostage">Gardner (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2022</a>)</span></h4>
 <ul>
 <li><p>These authors propose methodologies that have different implementations, but are very similar in spirit.</p></li>
-<li><p>Both methods are based on the idea of “imputing” the missing potential outcomes for the treated group, using a method similar to the one used for 2x2 DID.</p></li>
+<li><p>Both methods are based on the idea of “imputing” the missing potential outcomes <span class="math inline">\(Y_{it}(0)\)</span> for the treated group, using a method similar to the one used for 2x2 DID.</p></li>
 </ul>
 <ol type="1">
 <li>Use a combination of never and not-yet treated units model the outcomes as function of caracteristics.</li>
@@ -929,12 +931,12 @@ Absorbed degrees of freedom:
 <ol start="2" type="1">
 <li>Predictions from this model would represent the “potential outcomes” for non-treatment:</li>
 </ol>
-<p><span class="math display">\[\hat y_{it}^{D=0} \simeq y_{it}(0)\]</span></p>
+<p><span class="math display">\[\hat y_{it}(0) = \hat \delta_i + \hat \gamma_t \simeq y_{it}(0)\]</span></p>
 </section>
 <section id="section-1" class="slide level2">
 <h2></h2>
 <ol start="3" type="1">
-<li>Use those predictions to estimate treatment effects for every individual:</li>
+<li>Use those predictions, we can estimate treatment effects for every individual:</li>
 </ol>
 <p><span class="math display">\[\widehat {TE}_i = y_{it}(1) - \hat y_{it}^{D=0}\]</span></p>
 <ol start="4" type="1">
@@ -942,28 +944,136 @@ Absorbed degrees of freedom:
 </ol>
 <p><span class="math display">\[\widehat{ ATT} = E(\widehat {TE}_i|Z) = E(y_{it}(1)-\hat y_{it}^{D=0}|Z)\]</span></p>
 <p>where <span class="math inline">\(Z\)</span> can be any arbitrary restrictions on the averages.</p>
+<ol start="5" type="1">
+<li>This could be estimated as:</li>
+</ol>
+<p><span class="math display">\[y_{it} -\hat \delta_i - \hat \gamma_t = \theta + e\]</span></p>
+<p>or by simply averaging <span class="math inline">\(E(y_{it} -\hat y_{it}(0)|Z)\)</span></p>
 </section>
 <section id="assumptions" class="slide level2">
 <h2>Assumptions</h2>
 <ul>
-<li><p>The identification of TE using the imputation method relies on the same assumptions as the traditional DID design.</p></li>
-<li><p>However, It also requires an additional assumption:</p>
+<li>The identification of TE using the imputation method relies on the same assumptions as the traditional DID design.</li>
+<li>However, It also requires an additional assumption:
 <ul>
 <li>PTA holds for all pre- and post-treatment periods.</li>
 </ul></li>
-<li><p>This why how we can use pre-treatment information to predict the potential outcomes for the treated group.</p></li>
-<li><p>This also means that the method is sensitive to problems with <strong>long</strong> PTA. Although it can be relaxed.</p></li>
+<li>This why how we can use pre-treatment information to predict the potential outcomes for the treated group.
+<ul>
+<li>At the extreme, one could even identify TE without access to non-treated units!</li>
+</ul></li>
+<li>This also means that the method is sensitive to problems with <strong>long</strong> PTA. Although it can be somewhat relaxed (based on model specification).</li>
 </ul>
 </section>
-<section id="implementation" class="slide level2">
+<section id="implementation" class="slide level2 scrollable">
 <h2>Implementation</h2>
 <ul>
 <li>There are two implementations of the method in Stata: <code>did_imputation</code> and <code>did2s</code>. In addition to the original GMM estimator described in <span class="citation" data-cites="gardner2022twostage">Gardner (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2022</a>)</span></li>
 </ul>
+<div class="cell larger" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource stata number-lines code-with-copy"><code class="sourceCode stata"><span id="cb12-1"><a href="#cb12-1"></a><span class="kw">use</span> http:<span class="co">//pped.org/bacon_example.dta, clear</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a>**Estimate <span class="kw">model</span> <span class="kw">for</span> Pre-treatment <span class="kw">data</span></span>
+<span id="cb12-3"><a href="#cb12-3"></a><span class="kw">qui</span>:reghdfe asmrs <span class="kw">if</span> <span class="kw">post</span>==0, <span class="fu">abs</span>(fe1 = stfips fe2 = <span class="fu">year</span>)</span>
+<span id="cb12-4"><a href="#cb12-4"></a>** Extra polate</span>
+<span id="cb12-5"><a href="#cb12-5"></a><span class="kw">bysort</span> stfips (fe1):<span class="kw">replace</span> fe1=fe1[1]</span>
+<span id="cb12-6"><a href="#cb12-6"></a><span class="kw">bysort</span> <span class="fu">year</span> (fe2):<span class="kw">replace</span> fe2=fe2[1]</span>
+<span id="cb12-7"><a href="#cb12-7"></a></span>
+<span id="cb12-8"><a href="#cb12-8"></a>** <span class="fu">get</span> TE <span class="kw">for</span> i</span>
+<span id="cb12-9"><a href="#cb12-9"></a><span class="kw">gen</span> <span class="kw">te</span> = asmrs-fe1-fe2-_b[<span class="dt">_cons</span>]</span>
+<span id="cb12-10"><a href="#cb12-10"></a><span class="kw">sum</span> <span class="kw">te</span> <span class="kw">if</span> <span class="kw">post</span>==0</span>
+<span id="cb12-11"><a href="#cb12-11"></a><span class="kw">sum</span> <span class="kw">te</span> <span class="kw">if</span> <span class="kw">post</span>==1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(843 real changes made)
+(1107 real changes made)
+(264 missing values generated)
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+          te |        510    2.92e-09    9.204828  -36.51952   51.26879
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+          te |        843   -5.530065    15.66787  -69.98216   48.63423</code></pre>
+</div>
+</div>
+<p>using <code>did_imputation</code>:</p>
+<div class="cell larger" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource stata number-lines code-with-copy"><code class="sourceCode stata"><span id="cb14-1"><a href="#cb14-1"></a>** Gvar</span>
+<span id="cb14-2"><a href="#cb14-2"></a><span class="kw">egen</span> gvar = csgvar(<span class="kw">post</span>), ivar(stfips) tvar(<span class="fu">year</span>)</span>
+<span id="cb14-3"><a href="#cb14-3"></a>** event</span>
+<span id="cb14-4"><a href="#cb14-4"></a><span class="kw">gen</span> event = <span class="fu">year</span> - gvar <span class="kw">if</span> gvar!=0</span>
+<span id="cb14-5"><a href="#cb14-5"></a></span>
+<span id="cb14-6"><a href="#cb14-6"></a><span class="kw">clonevar</span> gvar2=gvar <span class="kw">if</span> gvar!=0</span>
+<span id="cb14-7"><a href="#cb14-7"></a></span>
+<span id="cb14-8"><a href="#cb14-8"></a>did_imputation asmrs stfips <span class="fu">year</span> gvar2, autosample horizon(1/10) pretrends(5)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(165 missing values generated)
+(165 missing values generated)
+Warning: part of the sample was dropped for the following coefficients because 
+&gt; FE could not be imputed: tau1 tau2 tau3 tau4 tau5 tau6 tau7 tau8 tau9 tau10.
+
+                                                           Number of obs = 870
+------------------------------------------------------------------------------
+       asmrs | Coefficient  Std. err.      z    P&gt;|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+        tau1 |   .1501093   1.857768     0.08   0.936     -3.49105    3.791268
+        tau2 |   1.089884    2.60167     0.42   0.675    -4.009296    6.189064
+        tau3 |    1.02914   2.788825     0.37   0.712    -4.436857    6.495136
+        tau4 |   .3781413   2.549497     0.15   0.882     -4.61878    5.375063
+        tau5 |  -1.302828   2.063713    -0.63   0.528    -5.347632    2.741976
+        tau6 |  -1.137572    3.37171    -0.34   0.736    -7.746001    5.470858
+        tau7 |  -5.499892   2.053929    -2.68   0.007    -9.525519   -1.474265
+        tau8 |  -4.864576   3.374892    -1.44   0.149    -11.47924     1.75009
+        tau9 |  -4.645944   2.361134    -1.97   0.049    -9.273682   -.0182059
+       tau10 |  -6.772627   3.287879    -2.06   0.039    -13.21675   -.3285015
+        pre1 |   1.556381   3.521476     0.44   0.659    -5.345585    8.458346
+        pre2 |   1.200269   2.633824     0.46   0.649     -3.96193    6.362469
+        pre3 |  -.4639667   2.213583    -0.21   0.834     -4.80251    3.874576
+        pre4 |   1.921326   1.947613     0.99   0.324    -1.895926    5.738579
+        pre5 |  -1.315265   1.905243    -0.69   0.490    -5.049472    2.418942
+------------------------------------------------------------------------------</code></pre>
+</div>
+</div>
 </section>
 <section id="allow-for-heterogeneity-jwdid-and-eventstudyinteract" class="slide level2">
 <h2>Allow for Heterogeneity: <code>jwdid</code> and <code>eventstudyinteract</code></h2>
-<h4 id="wooldridge_2021-and-sun_estimating_2021"><span class="citation" data-cites="wooldridge_2021">Jeffrey M. Wooldridge (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span> and <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span></h4>
+<h4 id="wooldridge_2021-and-sun_estimating_2021"><span class="citation" data-cites="wooldridge_2021">Wooldridge (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span> and <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span></h4>
+<ul>
+<li>In the analysis of Differences in Differences with multiple periods, one of the earliest attempts to “fix” the potential problem of TWFE was to allow for dynamic effects across time:</li>
+</ul>
+<p><span class="math display">\[Y_{i,t} = \delta_i + \gamma_t  + \sum_{l=-K}^{l=-2}\theta_l \mathbb{1}(e=l)
++ \sum_{l=0}^{l=L}\theta_l \mathbb{1}(e=l) + \epsilon_{i,t}
+\]</span></p>
+<ul>
+<li><p>Potentially, this model would allow one to analyze both the short and long term effects of the treatment, as well as evaluate the parallel trends assumption for each period.</p></li>
+<li><p>However, as described in <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>, this model is also sensitive to censoring.</p>
+<ul>
+<li>Similar to the Simple TWFE, there could be contamination across treatment timing, producing inconsistent results.</li>
+</ul></li>
+</ul>
+</section>
+<section id="allow-for-heterogeneity-jwdid-and-eventstudyinteract-1" class="slide level2">
+<h2>Allow for Heterogeneity: <code>jwdid</code> and <code>eventstudyinteract</code></h2>
+<ul>
+<li>A Similar insight to the problem of TWFE was presented in <span class="citation" data-cites="wooldridge_2021">Wooldridge (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>.
+<ul>
+<li>Wooldridge proposes that using TWFE is not necessary a problem.</li>
+<li>The problem is that we are imposing the assumption of Homogeneity in the treatment effect.</li>
+<li>In other words, the Generalized DID model was simply misspecified.</li>
+</ul></li>
+</ul>
+<p>Instead of modeling:</p>
+<p><span class="math display">\[Y_{i,t} = \delta_i + \gamma_t  + \theta^{fe} PT_{i,t} + \epsilon_{i,t}\]</span></p>
+<p>One should allow for a full set of interactions between the group and time dummies:</p>
+<p><span class="math display">\[Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=g0}^G \sum_{t=g}^T \theta_{g,t} \mathbb{1}(G=g,T=t) + \epsilon_{i,t}\]</span></p>
+<p>This is a very similar solution as the one proposed by <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>. They propose to use a full set of interactions between the group dummies and the event-study dummies.</p>
+<p>However, <span class="citation" data-cites="wooldridge_2021">Wooldridge (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span> approach could also be extended to identify the same parameters as <span class="citation" data-cites="sun_estimating_2021">Sun and Abraham (<a href="#/suggested-readings" role="doc-biblioref" onclick="">2021</a>)</span>.</p>
+</section>
+<section id="allow-for-heterogeneity-jwdid-and-eventstudyinteract-2" class="slide level2">
+<h2>Allow for Heterogeneity: <code>jwdid</code> and <code>eventstudyinteract</code></h2>
+</section>
+<section id="example-1" class="slide level2">
+<h2>Example</h2>
 </section>
 <section id="using-good-did-designs-csdid-and-csdid2" class="slide level2">
 <h2>Using Good DID Designs: <code>csdid</code> and <code>csdid2</code></h2>
@@ -1005,11 +1115,11 @@ Sant’Anna, Pedro H. C., and Jun Zhao. 2020. <span>“Doubly Robust Difference-
 <div id="ref-sun_estimating_2021" class="csl-entry" role="listitem">
 Sun, Liyang, and Sarah Abraham. 2021. <span>“Estimating Dynamic Treatment Effects in Event Studies with Heterogeneous Treatment Effects.”</span> <em>Journal of Econometrics</em>, Themed <span>Issue</span>: <span>Treatment</span> <span>Effect</span> 1, 225 (2): 175–99. <a href="https://doi.org/10.1016/j.jeconom.2020.09.006">https://doi.org/10.1016/j.jeconom.2020.09.006</a>.
 </div>
-<div id="ref-wooldridge_2023" class="csl-entry" role="listitem">
-Wooldridge, Jeffrey M. 2023. <span>“Simple Approaches to Nonlinear Difference-in-Differences with Panel Data.”</span> <em>The Econometrics Journal</em> 26 (3): C31–66. <a href="https://doi.org/10.1093/ectj/utad016">https://doi.org/10.1093/ectj/utad016</a>.
-</div>
 <div id="ref-wooldridge_2021" class="csl-entry" role="listitem">
 Wooldridge, Jeffrey M. 2021. <span>“Two-<span>Way</span> <span>Fixed</span> <span>Effects</span>, the <span>Two</span>-<span>Way</span> <span>Mundlak</span> <span>Regression</span>, and <span>Difference</span>-in-<span>Differences</span> <span>Estimators</span>.”</span> <em>SSRN Journal</em>. <a href="https://doi.org/10.2139/ssrn.3906345">https://doi.org/10.2139/ssrn.3906345</a>.
+</div>
+<div id="ref-wooldridge_2023" class="csl-entry" role="listitem">
+———. 2023. <span>“Simple Approaches to Nonlinear Difference-in-Differences with Panel Data.”</span> <em>The Econometrics Journal</em> 26 (3): C31–66. <a href="https://doi.org/10.1093/ectj/utad016">https://doi.org/10.1093/ectj/utad016</a>.
 </div>
 </div>
 <div class="footer footer-default">

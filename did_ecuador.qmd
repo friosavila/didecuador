@@ -14,6 +14,7 @@ format:
         echo: true
         css: styles.css 
 bibliography: did_reg.bib        
+jupyter: nbstata
 nocite: | 
   @*
 ---
@@ -94,12 +95,18 @@ $$ATT =\underbrace{E(Y_{i,1} - Y_{i,0}|D=1)}_{\Delta treat} - \underbrace{E(Y_{i
 graph_width = default
 graph_height = default
 */
+
 ```
 
 ```{stata}
 *| echo: false
 *| fig-align: center
 
+ssc install color_style
+set scheme white2
+color_style tableau
+
+set linesize 250
 clear
 input t d y
 0 0 0.5
@@ -109,9 +116,7 @@ input t d y
 0 2 0.6
 1 2 0.9
 end
-
-set scheme white2
-color_style s2
+ 
 two (scatter y t if d==0, connect(l)) ///
 	(scatter y t if d==1, connect(l)) ///
 	(scatter y t if d==2, connect(l)) ///
@@ -643,7 +648,7 @@ $$y_{it} = \hat \delta_i + \hat \gamma_t + \theta D_{it}*(other Heterogeneity) +
 - However, its more efficient than other models because it uses all-pretreatment data for estimation.
   - Data requirements are similar to the traditional DID design.
 
-## Implementation {.scrollable}
+## Example {.scrollable}
 
 - There are two implementations of the method in Stata: `did_imputation` and `did2s`. In addition to the original GMM estimator described in @gardner2022twostage.
 - However, the most flexible and Robust implementation is `did_imputation`.
@@ -717,7 +722,8 @@ $$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=2}^T \sum_{e=-k}^{-2} \theta_{g,e} \m
 - In fact, if we write the "event" as "time", it would look very similar to the model proposed by @wooldridge_2021.
 
 $$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=2}^T \sum_{t=1}^{g-2} \theta_{g,t} \mathbb{1}(T=t, G=g) 
-+ \sum_{g=2}^T \sum_{t=g}^{T} \theta_{g,t} \mathbb{1}(T=t, G=g) + \epsilon_{i,t}$$
++ \sum_{g=2}^T \sum_{t=g}^{T} \theta_{g,t} \mathbb{1}(T=t, G=g) + \epsilon_{i,t}
+$$
 
 - Thus, both approaches are identical if we allow for Full interactions before and after treatment.
 
@@ -745,7 +751,7 @@ Base Estimation:
 *| echo: true
 *| code-fold: false
 
-ssc install frause, replace
+qui:ssc install frause, replace
 frause mpdta, clear
 ** 
 jwdid lemp, ivar(countyreal) tvar(year) gvar(first_treat) 
@@ -785,30 +791,188 @@ Estimating an effect similar to @sun_estimating_2021
 *| classes: larger
 *| echo: true
 *| code-fold: false
-qui:jwdid lemp, ivar(countyreal) tvar(year) gvar(first_treat) 
+qui:jwdid lemp, ivar(countyreal) tvar(year) gvar(first_treat) ///
+	never //<- request full interaction
 estat event
-jwdid_plot
 ```
 
 It is also possible to add further restrictions to "event/calendar/group" aggregates
 
-
-
-
-
-## Example
-
+```{stata}
+*| classes: larger
+*| echo: true
+*| code-fold: false
+** requires latest JWDID
+qui:net install jwdid, from(https://friosavila.github.io/stpackages) replace
+program drop _all
+gen subsample = inrange(__event__,2,6)
+estat event, other(subsample)
+```
 
 ## Using Good DID Designs: `csdid` and `csdid2`
 #### @callaway_2021
 
-## Map: How they Relate
+- A third, and last, approach has been proposed by @callaway_2021.
+- In contrast with previous methods (which focus on global estimators), this approach suggests deconstructing the estimation into smaller, but well define pieces: The ATTGTs for 2x2 DIDs
 
+  - Makes it easy to use using **GOOD** DID designs only 
+  - and, once all ATTGT's are estimated, they can be aggregated in various ways
 
+- This approach takes full advantage of the fact we know quite well (`drdid` + others) how to estimate 2x2 DID. 
+- and (or but) forces you to utilize time constant or pretreatment controls only.
 
+- However, one now needs to estimate as many as periods and cohorts are available in the data.
 
+## Using Good DID Designs: `csdid` and `csdid2`
+#### @callaway_2021
 
+- The proposed estimator starts with the assumption that one is interested in the ATTGT:
 
+$$ATT(g,t) = E(y_{i,t}(G) - y_{i,t}(\infty) |G_i =g)
+$$
+
+- As in the simpler 2x2 case, however, we cannot observe the $y_{i,t}(\infty)$ after they are treated.
+
+- What @callaway_2021 does is to impute this piece applyint PTA and no Anticipation.
+- 
+$${E(y_{i,t}(\infty)|G_i =g)} \approx E(y_{i,G-k}|G_i =g) + E(y_{i,t}-y_{i,G-k}| G_i \in Control)
+$$
+
+- Thus, the estimator for the ATT(g,t) becomes:
+$$\widehat{ATT(g,t)} = E(y_{i,t}- y_{i,G-k}|G_i =g)- E(y_{i,t}- y_{i,G-k}|G_i \in Control)
+$$
+
+## Using Good DID Designs: `csdid` and `csdid2`
+#### @callaway_2021
+
+$$\widehat{ATT(g,t)} = E(y_{i,t}- y_{i,G-k}|G_i =g)- E(y_{i,t}- y_{i,G-k}|G_i \in Control)$$
+
+1. With no anticipation and PTA, *ANY* period before treatment ($G-k$) could be used to construct the ATT(g,t). 
+2. Because of this, it only relies on Post-treatment PTA. (Violations of PTA before treatment have no impact on the estimates)
+3. Depending on the analysis of interest, one could choose different "control groups"
+   - Never treated: Most common
+   - Not-yet-treated: Include observations that up to time $t$ have not been treated.
+   - For pre-treatment ATT(g,t)'s, the Not-yet treated cound include all cohorts not treated until $t$ `R` or those not treat until $t$ nor $g$ `Stata`.
+
+## Using Good DID Designs: `csdid` and `csdid2`
+#### @callaway_2021
+
+- This approach is relatively easy to implement. The main difficulty is keeping track of ALL the ATT(g,t)s that are estimated (and their VCV)
+- However, once all ATT(g,t)'s are obtained, aggregation is straight forward:
+
+$$
+AGG(ATT(g,t)) = \frac{\sum_{g,t \in G\times T}   ATT(g,t) * w_{g,t} * sel_{g,t} }
+{\sum_{g,t \in G\times T} w_{g,t} * sel_{g,t} }
+$$
+
+- where $w_{g,t}$ represents the size of cohort $g$ at time $t$ used in the estimation of ATT(g,t). 
+
+- and  $sel_{g,t}$ is an indicator for whether that ATTGT will be used in the aggregation.
+
+## Using Good DID Designs: `csdid` and `csdid2`
+#### @callaway_2021
+
+Typical Aggregations:
+
+- Simple: $sel_{g,t}=1$ if $t>=g$
+- Group/cohort: $sel_{g,t}=1$ if $t>=g$ and $g=G$
+- Calendar: $sel_{g,t}=1$ if $t>=g$ and $t=T$
+- Event: $sel_{g,t}=1$ if $t-g=e$
+- Cevent: $sel_{g,t}=1$ if $t-g \in [ll,\dots,uu]$
+
+and may be possible to combine some of these restrictions
+
+- Also, because the method is based on 2x2 DID, it allows to easily implement various methodologies, including the Doubly Robust.
+
+## Map: How @callaway_2021 relates to @wooldridge_2021 and @borusyak2023revisiting
+
+Relations: Simple case of no covariates
+
+- `jwdid` =  `did_imputation`: `jwdid` can be applied to nonlinear models, but `did_imputation` is more flexible for linear models.
+- `jwdid` = `did_imputation`  = `csdid, notyet`: When using the not-yet treated as control, `csdid` will produce the same estimates as the others if there is only **1 pretreatment** period.
+- `jwdid, never` = `csdid` = `eventinteract`: If `jwdid` uses full interactions for pre and post treatment periods, the results will be the same as `csdid` or `eventinteract`
+
+Thus the main differences across models is:
+
+- How they use "pre-treatment" information for the estimation of ATTs (long vs short)
+- Whether they use only "never-treated" or "not-yet-treated" units for estimation
+- And how are covariates treated
+
+## Example {.scrollable}
+
+- `csdid` is the older command, with all functions well documented (helpfile).
+
+- However, it can be slow in large tasks, because of the bottle neck of using the Full Dataset for every task. 
+
+- `csdid2` works almost identically to `csdid`, its faster, but some functions are not yet documented (helpfile is still missing). Will use this one here
+
+```{stata}
+*| echo: true
+*| classes: larger
+*| code-fold: false
+qui:net install csdid2, from(https://friosavila.github.io/stpackages) replace
+use http://pped.org/bacon_example.dta, clear
+
+** create Gvar: still needs csdid
+egen gvar = csgvar(post), ivar(stfips) tvar(year)
+
+csdid2 asmrs, ///
+	ivar(stfips) /// <- required for panel Data. Otherwise RC
+	tvar(year)   /// <- Time variable. Should be continuously (month 11, 12, 13, ...)
+	gvar(gvar)   
+** Default uses "never treated", and produces Long gaps.
+```
+
+- `csdid2` is creating the full set of ATT(g,t) estimations for the data. But will produce no result
+- To obtain results and plotting, one must use post estimation commands:
+
+```{stata}
+*| echo: true
+*| classes: larger
+*| code-fold: false
+
+estat event, /// request event-type estimates
+	noavg    /// asks not to produce Averages
+	revent(-10/10) // requests to limit the output to events between -10/10
+** Its also possible to restrict to specific groups/cohorts rgroup( list of numbers)
+** or restrict to specific years rcalendar( list of numbers)
+```
+
+`estat plot`, will produce a figure from the last estimation
+
+```{stata}
+*| echo: true
+*| classes: larger
+*| code-fold: false
+*| output: false
+estat plot, xsize(10) ysize(8)
+graph export figev.png, replace width(800)
+```
+
+![a](figev.png)
+<img src="figev.png" alt="Trulli" style="width:1%">
+
+Advantage of `csdid2` over other methods. Uniform Confidence Intervals using Wildbootstrap SE.
+
+## Conclusions
+
+- In this workshop I aimed to provide a brief overview of the problems with TWFE and the potential solutions.
+- 3 main solutions were presented:
+  1. Avoid using bad controls (@borusyak2023revisiting and @gardner2022twostage)
+  2. Allow for heterogeneity in the treatment effect. (@wooldridge_2021 and @sun_estimating_2021)
+  3. Use *only* good DID designs. (@callaway_2021)
+
+## Conclusions
+
+- All methods have their own advantages and disadvantages.
+- 3) is the most robust based on the assumptions, but is the least efficient because of the sample size requirements. It also allows for flexiblity of DR estimators, and ensures you use pre-treatment controls only.
+- 1) and 2) are more efficient, (more data is used), but rely strongy on Long PTA assumption.
+- 2) can be applied in non-linear settings, using nonlinear models. But aggregations are slower to obtain.
+- 1) and 2) can also be adapted to consider -dose-response- effects. As well as Treatment Reversals.
+
+  
+# Thank you!
+### Comments? Questions?
 
 
 ## Suggested readings

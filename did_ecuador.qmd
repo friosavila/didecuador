@@ -303,8 +303,7 @@ tabstat att_i, by(exper)
 
 ## How GxT DID was suppoused to work
 
-- First: Although restrictive, one common assumption for most models that deal with this design assume treatment is an absorbing state. (once treated, always treated).
- 
+
 - While the 2x2 DID design is simple to understand, it does not reflect the type of information that is available in most cases. (G>2 and T>2)
  
 - Until few years ago, when this kind of data was available, the standard approach was to use a generalized DID design, which extended the use of Fixed Effects:
@@ -491,6 +490,7 @@ $$\widetilde{PT}_{it}=PT_{it}-\overline{PT}_{i}-\overline{PT}_{t}+\overline{PT}$
 - $\overline{PT}$ Share of treated "unit-periods"
 
 Thus,
+
 - Units that are treated early, (high $\overline{PT}_{i}$)
 - but are analyzed at later periods ($\overline{PT}_{t}$ increasing in $t$)
 
@@ -501,7 +501,7 @@ Will be more likely to have a negative weight $w_{it}$, thus contaminating the A
 ```{stata}
 *| echo: false
 *| fig-align: center
-
+*| output: false
 clear
 set obs 100
 gen id = _n
@@ -513,6 +513,12 @@ gen trt = t>=gvar
 
 reghdfe trt , abs(id t) resid
 bysort gvar t:gen flag = _n
+```
+
+```{stata}
+*| echo: false
+*| fig-align: center
+
 two (scatter _reghdfe_resid t if trt==1 & gvar==1 & flag==1, connect(l)) ///
 	(scatter _reghdfe_resid t if trt==1 & gvar==2 & flag==1, connect(l)) ///
 	(scatter _reghdfe_resid t if trt==1 & gvar==5 & flag==1, connect(l)) ///
@@ -534,6 +540,54 @@ two (scatter _reghdfe_resid t if trt==1 & gvar==1 & flag==1, connect(l)) ///
 
 3. However, if the treatment effect is heterogeneous, Parallel Trends between already treated and late treated units may not hold. 
 
+## GxT DID: Generalized DID
+### Setup
+- In the Generalized DID
+  - One has access to multiple periods of data: $t = 1,2,...,T$.
+  - And units can be treated at any point before, during or after the available Data $G = -k,..1,2,..,T+l$.
+    - This is the cohort or group.
+  - We also assume that once a unit is treated, it remains treated. (no reversals/no cohort-change)
+
+- From our perspective, units treated **at or before** $t=1$ will be considered as **Allways treated**.
+  - This units cannot be used for analysis.
+- For any practical purpose, if we do not observe a unit being treated in the window of time observed, we assume its **Never Treated**. 
+  - For Notation we say these units belong to $g=\infty$ (or that they could be treated at some point in the far future)
+
+## GxT DID: Generalized DID
+### Potential Outcomes
+
+- In contrast with previous setup, with the GDID, we believe observations have multiple potential outcomes, for each period of time.
+	- $Y_{i,t}(G)$ is the potenital outcome for individual $i$ at time $t$, if this unit would be treated at time $G$. 
+	- Thus we state that depending on "when" a unit is treated, the potential outcomes could be different.
+  	- This is what it means allowing for heterogeneity.
+  
+## GxT DID: Generalized DID
+### Parallel Trends Assumption
+
+- PTA assumption is also slightly modified. Because we can differentiate between **never-treated** and **not-yet-treated**, one could impose those PTA assumptions.
+  
+  Never Treated
+	$$E(Y_{i,t}(\infty) - Y_{i,t-s}(\infty)|G=g) = E(Y_{i,t}(\infty) - Y_{i,t-s}(\infty)|G=\infty) \forall s>0 $$
+
+  Not Yet Treated
+
+  	$$E(Y_{i,t}(\infty) - Y_{i,t-s}(\infty)|G=g) = E(Y_{i,t}(\infty) - Y_{i,t-s}(\infty)|G=g') \forall s>0 $$
+
+- Which suggests PTA hold for all pre- and post-treatment periods. 
+- Some methods only rely on Post-treatment PTA.
+  
+## GxT DID: Generalized DID
+### No Anticipation
+
+- As before, we also require no anticipation.
+  - That the before treatment takes place (or is announced), the potential outcomes do not depend on the treatment status.
+
+$$Y_{i,t}(G) = Y_{i,t}(\infty) \text{ if } t<G $$ 
+
+- Also important.
+  - $E(Y_{i,t}(G)|g=G) = E(Y_{i,t}|g=G)$ if $t>G$ 
+  - $E(Y_{i,t}(\infty)|g=\infty) = E(Y_{i,t}|g=\infty)$
+
 # Solutions
 
 ## General Overview
@@ -543,7 +597,7 @@ The root of the problem with TWFE:
 > If treatment effects are heterogenous, the TWFE estimator of treatment effects produces incorrect estimates
 > because of "negative weights" or "bad controls"
 
-To solve the problem we need to do one of three things:
+To solve the problem we need to do (at least) one of three things:
 
   1) Avoid using bad controls (@borusyak2023revisiting and @gardner2022twostage)
   2) Allow for heterogeneity in the treatment effect. (@wooldridge_2021 and @sun_estimating_2021)
@@ -552,48 +606,48 @@ To solve the problem we need to do one of three things:
 ## Avoid using bad controls: `did_imputation` and `did2s`
 #### @borusyak2023revisiting and @gardner2022twostage
 
-- These authors propose methodologies that have different implementations, but are very similar in spirit.
-
-- Both methods are based on the idea of "imputing" the missing potential outcomes $Y_{it}(0)$ for the treated group, using a method similar to the one used for 2x2 DID. 
+- Both methods are based on the idea of "imputing" the missing potential outcomes $Y_{it}(0)$ for the treated group, using a method similar to the one used for 2x2 DID. A two-stage approach.
   
-1. Use a combination of never and not-yet treated units model the outcomes as function of caracteristics.
+1. We know that estimating the following model would be incorrect:
 
-$$y_{it} = \delta_i + \gamma_t + \beta X_{it} + \epsilon_{it} \text{ if } D_{it}=0$$
+$$y_{it} = \delta_i + \gamma_t + \theta D_{it} + \epsilon_{it}$$
 
-2. Predictions from this model would represent the "potential outcomes" for non-treatment:
+2. However, what this authors suggest is to identify $\delta_i$ and $\gamma_t$ using pre-treatment data only:
 
-$$\hat y_{it}(0) = \hat \delta_i + \hat \gamma_t \simeq y_{it}(0)$$ 
+$$y_{it} = \delta_i + \gamma_t + \epsilon_{it} \text{ if } t<g $$
 
-##
+This helps identifying the fixed effects, without any contamination. (its a model for the potential outcome of no treatment)
 
-3. Use those predictions, we can estimate treatment effects for every individual:
+## Avoid using bad controls: `did_imputation` and `did2s`
+#### @borusyak2023revisiting and @gardner2022twostage
 
-$$\widehat {TE}_i = y_{it}(1) - \hat y_{it}^{D=0}$$
+3. Use the previous model to re-estimate 1:
 
-4. For Statistical inference, using a single observation is not enough. However, Statistical inference is possible for some Aggregation of the individual Estimated TE.
+$$y_{it} = \hat \delta_i + \hat \gamma_t + \theta D_{it} + \epsilon_{it}$$
 
-$$\widehat{ ATT} = E(\widehat {TE}_i|Z) = E(y_{it}(1)-\hat y_{it}^{D=0}|Z)$$
+4. In fact, one could use many other specifications to identify Treatment effects, including by group, by calendar, or dynamic effects.
 
-where $Z$ can be any arbitrary restrictions on the averages. 
+$$y_{it} = \hat \delta_i + \hat \gamma_t + \theta D_{it}*(other Heterogeneity) + \epsilon_{it}$$
 
-5. This could be estimated as:
-
-$$y_{it} -\hat \delta_i - \hat \gamma_t = \theta + e$$
-
-or by simply averaging $E(y_{it} -\hat y_{it}(0)|Z)$
-
-## Assumptions
+## Avoid using bad controls: `did_imputation` and `did2s`
+#### @borusyak2023revisiting and @gardner2022twostage
 
 - The identification of TE using the imputation method relies on the same assumptions as the traditional DID design.
-- However, It also requires an additional assumption:
-  - PTA holds for all pre- and post-treatment periods.
-- This why how we can use pre-treatment information to predict the potential outcomes for the treated group.
-  - At the extreme, one could even identify TE without access to non-treated units!
+- However, It also requires the Parallel Trends Assumption (PTA) to hold for all pre-treatment periods.
+  
+  - This why how we can use pre-treatment information to predict the potential outcomes for the treated group.
+    - At the extreme, one could even identify TE without access to non-treated units!
+  
 - This also means that the method is sensitive to problems with **long** PTA. Although it can be somewhat relaxed (based on model specification).
+
+- However, its more efficient than other models because it uses all-pretreatment data for estimation.
+  - Data requirements are similar to the traditional DID design.
 
 ## Implementation {.scrollable}
 
-- There are two implementations of the method in Stata: `did_imputation` and `did2s`. In addition to the original GMM estimator described in @gardner2022twostage
+- There are two implementations of the method in Stata: `did_imputation` and `did2s`. In addition to the original GMM estimator described in @gardner2022twostage.
+- However, the most flexible and Robust implementation is `did_imputation`.
+
 
 ```{stata}
 *| echo: true
@@ -622,55 +676,122 @@ using `did_imputation`:
 egen gvar = csgvar(post), ivar(stfips) tvar(year)
 ** event
 gen event = year - gvar if gvar!=0
-
+** Gvar = . (missing implies never treated)
 clonevar gvar2=gvar if gvar!=0
-
+did_imputation asmrs stfips year gvar2, autosample
 did_imputation asmrs stfips year gvar2, autosample horizon(1/10) pretrends(5)
 ```
 
 ## Allow for Heterogeneity: `jwdid` and `eventstudyinteract`
 #### @wooldridge_2021 and @sun_estimating_2021
 
-- In the analysis of Differences in Differences with multiple periods, one of the earliest attempts to "fix" the potential problem of TWFE was to allow for dynamic effects across time:
+- The work by @wooldridge_2021 suggested that the GDID-TWFE estimator was not a problem perse.
+- The problem was that the GDID-TWFE estimator was simply misspecified.
 
-$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{l=-K}^{l=-2}\theta_l \mathbb{1}(e=l)
- + \sum_{l=0}^{l=L}\theta_l \mathbb{1}(e=l) + \epsilon_{i,t}
-$$
-
-- Potentially, this model would allow one to analyze both the short and long term effects of the treatment, as well as evaluate the parallel trends assumption for each period. 
-
-- However, as described in @sun_estimating_2021, this model is also sensitive to censoring. 
-  - Similar to the Simple TWFE, there could be contamination across treatment timing, producing inconsistent results.
-
-## Allow for Heterogeneity: `jwdid` and `eventstudyinteract`
-
-- A Similar insight to the problem of TWFE was presented in @wooldridge_2021.
-  - Wooldridge proposes that using TWFE is not necessary a problem. 
-  - The problem is that we are imposing the assumption of Homogeneity in the treatment effect.
-  - In other words, the Generalized DID model was simply misspecified.
-
-Instead of modeling:
-
+- Instead of modeling:
 $$Y_{i,t} = \delta_i + \gamma_t  + \theta^{fe} PT_{i,t} + \epsilon_{i,t}$$
-  
-One should allow for a full set of interactions between the group and time dummies:
 
-$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=g0}^G \sum_{t=g}^T \theta_{g,t} \mathbb{1}(G=g,T=t) + \epsilon_{i,t}$$
+- One should allow for a full set of interactions between the group and time dummies:
 
-## 
-
-- This is a very similar solution as the one proposed by @sun_estimating_2021.
-	- They propose to use a full set of interactions between the group dummies and the event-study dummies.
-
-- However, @wooldridge_2021 approach could also be extended to identify the same parameters as @sun_estimating_2021.
-
-$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=g0}^G \sum_{t=1}^T \theta_{g,t} \mathbb{1}(G=g,T=t) + \epsilon_{i,t}$$
+$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=2}^T \sum_{t=g}^T \theta_{g,t} \mathbb{1}(G=g,T=t) + \epsilon_{i,t}$$
 
 - In this framework, each $\theta_{g,t}$ represents the ATT for each group at a particular period.
-  - The challenge in this case is to know how to aggregate these estimates, and how to estimate their Standard errors.
-- And in the simplest case, the basic @wooldridge_2021 is equivalent to  @borusyak2023revisiting method.
 
-## Example
+## Allow for Heterogeneity: `jwdid` and `eventstudyinteract`
+#### @wooldridge_2021 and @sun_estimating_2021
+
+- In the basic setup, this approach is basically the same as the method proposed by @borusyak2023revisiting and @gardner2022twostage.
+- Wooldridge, however, was not the first approach that aim to "allow for heterogeneity" in the treatment effect. Early attempts were done by using a dynamic events structure, using both leads ands lags of the treatment variable.
+$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{e=-k}^{-2} \theta_e \mathbb{1}(t-G_i=e) + \sum_{e=0}^L \theta_e \mathbb{1}(t-G_i=e) + \epsilon_{i,t}$$
+
+- This not only allows for heterogenous effects across time, but also allows you to analyze pre-treatments effects.
+
+- However @sun_estimating_2021 showed that this approach could also be wrong, if dynamic effects are also heterogenous across groups.
+
+## Allow for Heterogeneity: `jwdid` and `eventstudyinteract`
+#### @wooldridge_2021 and @sun_estimating_2021
+
+- As solution, @sun_estimating_2021 propose to use a full set of interactions between the group dummies and the event-study dummies. This is similar to @wooldridge_2021.
+$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=2}^T \sum_{e=-k}^{-2} \theta_{g,e} \mathbb{1}(t-G_i=e, G=g) + \sum_{g=2}^T \sum_{e=0}^L \theta_{g,e} \mathbb{1}(t-G_i=e, G=g) + \epsilon_{i,t}$$
+
+- In fact, if we write the "event" as "time", it would look very similar to the model proposed by @wooldridge_2021.
+
+$$Y_{i,t} = \delta_i + \gamma_t  + \sum_{g=2}^T \sum_{t=1}^{g-2} \theta_{g,t} \mathbb{1}(T=t, G=g) 
++ \sum_{g=2}^T \sum_{t=g}^{T} \theta_{g,t} \mathbb{1}(T=t, G=g) + \epsilon_{i,t}$$
+
+- Thus, both approaches are identical if we allow for Full interactions before and after treatment.
+
+## Allow for Heterogeneity: `jwdid` and `eventstudyinteract`
+### Assumptions and Limitations
+
+- The model proposed by @wooldridge_2021 follows the same assumptions as @borusyak2023revisiting. (Long PTA)
+- @sun_estimating_2021 and the modified @wooldridge_2021, however, only requires PTA to hold "after" treatment takes place.
+- Both methods require careful consideration of covariates (time constant), and they require additional work for adding it into a model (variable shifting).
+  - The limitations of sample size are somewhat more evident in this framework.
+- Wooldridge's approach, however, could also be used beyond the linear case as shown in @wooldridge_2023.
+  
+## Implementation {.scrollable}
+
+There are various commands that implement @sun_estimating_2021 estimator, including her original command `eventsudyinteract`, as well as `xtevent`.
+
+For @wooldridge_2021, there is now the official Stata18 command `xthdidregress twfe`, the one I developed: `jwdid` and a newer one `wooldid`.
+
+Will focus on `jwdid`.
+
+Base Estimation:
+
+```{stata}
+*| classes: larger
+*| echo: true
+*| code-fold: false
+
+ssc install frause, replace
+frause mpdta, clear
+** 
+jwdid lemp, ivar(countyreal) tvar(year) gvar(first_treat) 
+estat simple
+```
+
+Adding controls
+```{stata}
+*| classes: larger
+*| echo: true
+*| code-fold: false
+jwdid lemp lpop, ivar(countyreal) tvar(year) gvar(first_treat) 
+estat simple
+```
+
+Compared to `did_imputation`
+```{stata}
+*| classes: larger
+*| echo: true
+*| code-fold: false
+
+gen first2=first_treat if first_treat>0
+did_imputation lemp countyreal year first2
+```
+
+```{stata}
+*| classes: larger
+*| echo: true
+*| code-fold: false
+qui:jwdid lemp, ivar(countyreal) tvar(year) gvar(first_treat) 
+estat simple
+```
+
+Estimating an effect similar to @sun_estimating_2021
+
+```{stata}
+*| classes: larger
+*| echo: true
+*| code-fold: false
+qui:jwdid lemp, ivar(countyreal) tvar(year) gvar(first_treat) 
+estat event
+jwdid_plot
+```
+
+It is also possible to add further restrictions to "event/calendar/group" aggregates
+
 
 
 
